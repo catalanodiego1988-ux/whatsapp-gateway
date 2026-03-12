@@ -15,16 +15,28 @@ const getExecutablePath = () => {
         return process.env.PUPPETEER_EXECUTABLE_PATH;
     }
     
-    // Ruta estándar con ./.puppeteer como cache
-    const chromePath = path.join(process.cwd(), '.puppeteer', 'chrome', 'linux-146.0.7680.66', 'chrome-linux64', 'chrome');
-    console.log('Buscando Chrome en:', chromePath);
+    const baseDir = path.join(process.cwd(), '.puppeteer', 'chrome');
+    console.log('Buscando Chrome en base:', baseDir);
     
-    if (fs.existsSync(chromePath)) {
-        console.log('Chrome encontrado!');
-        return chromePath;
+    if (!fs.existsSync(baseDir)) {
+        console.log('Base de Chrome no existe:', baseDir);
+        return undefined;
+    }
+
+    try {
+        const versions = fs.readdirSync(baseDir);
+        for (const v of versions) {
+            const p = path.join(baseDir, v, 'chrome-linux64', 'chrome');
+            if (fs.existsSync(p)) {
+                console.log('Chrome encontrado dinámicamente en:', p);
+                return p;
+            }
+        }
+    } catch (err) {
+        console.error('Error listando versiones de Chrome:', err);
     }
     
-    console.log('Chrome NO encontrado en ruta relativa.');
+    console.log('No se encontró ningún ejecutable de Chrome en .puppeteer/chrome/');
     return undefined;
 };
 
@@ -94,8 +106,17 @@ client.on('disconnected', (reason) => {
     qrCodeData = null;
 });
 
-console.log('Inicializando cliente WhatsApp...');
-client.initialize().catch(err => console.error('Error inicializando:', err));
+console.log('Inicializando cliente WhatsApp (paciencia, puede tardar 1-2 minutos)...');
+client.initialize()
+    .then(() => console.log('client.initialize() completado'))
+    .catch(err => {
+        console.error('ERROR CRÍTICO INICIALIZANDO WHATSAPP:', err);
+        // Si falla, intentamos resetear el estado después de un tiempo
+        setTimeout(() => {
+            console.log('Reintentando inicialización...');
+            client.initialize().catch(() => {});
+        }, 30000);
+    });
 
 // ─── Endpoint de salud — necesario para que Render no apague el servicio ───
 app.get('/health', (req, res) => {
