@@ -56,6 +56,15 @@ const authenticate = (req: express.Request, res: express.Response, next: express
 // ─── Estado global ──────────────────────────────────────────────────────────
 let qrCodeData: string | null = null;
 let isReady = false;
+let isAuthenticated = false;
+let lastEvent = 'none';
+let lastEventTime = new Date().toISOString();
+
+const updateEvent = (event: string) => {
+    lastEvent = event;
+    lastEventTime = new Date().toISOString();
+    console.log(`[Event Update] ${event} at ${lastEventTime}`);
+};
 
 // ─── Cliente WhatsApp ───────────────────────────────────────────────────────
 const client = new Client({
@@ -77,55 +86,112 @@ const client = new Client({
 });
 
 client.on('qr', async (qr) => {
-    console.log('QR generado');
+    updateEvent('qr');
+    console.log('QR generado: El usuario debe escanearlo.');
     qrCodeData = await qrcode.toDataURL(qr);
     isReady = false;
+    isAuthenticated = false;
 });
 
 client.on('authenticated', () => {
-    console.log('WhatsApp autenticado');
+    updateEvent('authenticated');
+    console.log('WhatsApp autenticado: El scan fue exitoso.');
+    isAuthenticated = true;
+    qrCodeData = null;
 });
 
 client.on('auth_failure', (msg) => {
+    updateEvent('auth_failure');
     console.error('Error de autenticación:', msg);
+    isAuthenticated = false;
 });
 
 client.on('ready', () => {
-    console.log('WhatsApp conectado');
+    updateEvent('ready');
+    console.log('WhatsApp conectado y listo para enviar mensajes.');
     isReady = true;
     qrCodeData = null;
 });
 
 client.on('loading_screen', (percent, message) => {
+    updateEvent(`loading: ${percent}% - ${message}`);
     console.log('Cargando WhatsApp:', percent, '%', message);
 });
 
 client.on('disconnected', (reason) => {
+    updateEvent(`disconnected: ${reason}`);
     console.log('WhatsApp desconectado:', reason);
     isReady = false;
+    isAuthenticated = false;
     qrCodeData = null;
 });
 
-console.log('Inicializando cliente WhatsApp (paciencia, puede tardar 1-2 minutos)...');
-client.initialize()
-    .then(() => console.log('client.initialize() completado'))
-    .catch(err => {
-        console.error('ERROR CRÍTICO INICIALIZANDO WHATSAPP:', err);
-        // Si falla, intentamos resetear el estado después de un tiempo
-        setTimeout(() => {
-            console.log('Reintentando inicialización...');
-            client.initialize().catch(() => {});
-        }, 30000);
-    });
+const initializeClient = () => {
+    updateEvent('initializing');
+    console.log('Inicializando cliente WhatsApp (paciencia, puede tardar 1-2 minutos)...');
+    client.initialize()
+        .then(() => console.log('client.initialize() completado'))
+        .catch(err => {
+            updateEvent(`init_error: ${err.message}`);
+            console.error('ERROR CRÍTICO INICIALIZANDO WHATSAPP:', err);
+            setTimeout(() => {
+                console.log('Reintentando inicialización...');
+                initializeClient();
+            }, 30000);
+        });
+};
 
-// ─── Endpoint de salud — necesario para que Render no apague el servicio ───
+initializeClient();
+
+// ─── GET /health ────────────────────────────────────────────────────────────
 app.get('/health', (req, res) => {
-    res.json({ status: 'ok', isReady, hasQr: !!qrCodeData });
+    res.json({ 
+        status: 'ok', 
+        isReady, 
+        isAuthenticated,
+        hasQr: !!qrCodeData,
+        lastEvent,
+        lastEventTime
+    });
 });
 
 // ─── GET /status ────────────────────────────────────────────────────────────
 app.get('/status', authenticate, (req, res) => {
-    res.json({ isReady, hasQr: !!qrCodeData });
+    res.json({ 
+        isReady, 
+        isAuthenticated,
+        hasQr: !!qrCodeData,
+        lastEvent,
+        lastEventTime
+    });
+});
+
+// ─── POST /reset ─────────────────────────────────────────────────────────────
+app.post('/reset', authenticate, async (req, res) => {
+    console.log('Reset solicitado...');
+    updateEvent('manual_reset');
+    try {
+        await client.destroy();
+        initializeClient();
+        res.json({ success: true, message: 'Cliente reiniciado' });
+    } catch (error) {
+        res.status(500).json({ error: 'Error al reiniciar cliente' });
+    }
+});
+
+// ─── POST /logout ────────────────────────────────────────────────────────────
+app.post('/logout', authenticate, async (req, res) => {
+    console.log('Logout solicitado...');
+    updateEvent('manual_logout');
+    try {
+        await client.logout();
+        isReady = false;
+        isAuthenticated = false;
+        qrCodeData = null;
+        res.json({ success: true, message: 'Sesión cerrada' });
+    } catch (error) {
+        res.status(500).json({ error: 'Error al cerrar sesión' });
+    }
 });
 
 // ─── GET /qr ────────────────────────────────────────────────────────────────
