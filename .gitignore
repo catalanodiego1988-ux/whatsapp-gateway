@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.env
+.wwebjs_auth/
+.wwebjs_cache/
+.cache/
+.puppeteer/
+.puppeteer_cache/

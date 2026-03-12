@@ -1,0 +1,107 @@
+﻿[dotenv@17.3.1] injecting env (2) from .env -- tip: ÔÜÖ´©Å  suppress all logs with { quiet: true }
+Inicializando cliente WhatsApp...
+node : (node:21768) 
+[DEP0040] 
+DeprecationWarning: 
+The `punycode` module 
+is deprecated. Please 
+use a userland 
+alternative instead.
+En línea: 1 Carácter: 
+22
++ cd 
+whatsapp-gateway; 
+node dist/index.js 
+2>&1 | Out-File 
+-FilePath ful ...
++                     
+ ~~~~~~~~~~~~~~~~~~~~~
+~~
+    + CategoryInfo    
+          : NotSpeci  
+  fied: ((node:2176   
+ 8) [D...native in    
+stead.:String) []    
+, RemoteException
+    + FullyQualifiedE 
+   rrorId : NativeCo  
+  mmandError
+ 
+(Use `node 
+--trace-deprecation 
+...` to show where 
+the warning was 
+created)
+node:events:486
+      throw er; // 
+Unhandled 'error' 
+event
+      ^
+
+Error: listen 
+EADDRINUSE: address 
+already in use :::3001
+    at Server.setupLis
+tenHandle [as 
+_listen2] 
+(node:net:1940:16)
+    at 
+listenInCluster 
+(node:net:1997:12)
+    at Server.listen 
+(node:net:2102:7)
+    at app.listen (C:\
+Users\Usuario\Desktop\
+CRM original\whatsapp-
+gateway\node_modules\e
+xpress\lib\application
+.js:635:24)
+    at 
+Object.<anonymous> (C:
+\Users\Usuario\Desktop
+\CRM original\whatsapp
+-gateway\dist\index.js
+:126:5)
+    at 
+Module._compile (node:
+internal/modules/cjs/l
+oader:1804:14)
+    at Object..js (nod
+e:internal/modules/cjs
+/loader:1936:10)
+    at Module.load (no
+de:internal/modules/cj
+s/loader:1525:32)
+    at Module._load (n
+ode:internal/modules/c
+js/loader:1327:12)
+    at TracingChannel.
+traceSync (node:diagno
+stics_channel:328:14)
+    at wrapModuleLoad 
+(node:internal/modules
+/cjs/loader:245:24)
+    at Module.executeU
+serEntryPoint [as 
+runMain] (node:interna
+l/modules/run_main:154
+:5)
+    at node:internal/m
+ain/run_main_module:33
+:47
+Emitted 'error' event 
+on Server instance at:
+    at emitErrorNT 
+(node:net:1976:8)
+    at process.process
+TicksAndRejections (no
+de:internal/process/ta
+sk_queues:89:21) {
+  code: 'EADDRINUSE',
+  errno: -4091,
+  syscall: 'listen',
+  address: '::',
+  port: 3001
+}
+
+Node.js v24.13.1
